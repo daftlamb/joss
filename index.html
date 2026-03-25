@@ -526,14 +526,24 @@ function getEmberPos() {
 }
 
 var smokeT = 0;
+var turbulence = 0;      // occasional gust offset
+var turbTimer = 0;       // countdown to next gust
+var turbTarget = 0;
 
 function animateSmoke() {
   smokeCtx.clearRect(0, 0, smokeCanvas.width, smokeCanvas.height);
-  smokeT += 0.008;
+  smokeT += 0.007;
+
+  // Random turbulence event — occasional sideways gust
+  turbTimer--;
+  if (turbTimer <= 0) {
+    turbTimer = 120 + Math.random() * 200;  // every 2–5 sec
+    turbTarget = (Math.random() - 0.5) * 18;
+  }
+  turbulence += (turbTarget - turbulence) * 0.012;  // smooth ease
 
   if (smokeActive && running) {
     var pos = getEmberPos();
-    // Add new base point every ~3 frames
     smokeSpawnAcc++;
     if (smokeSpawnAcc >= 3) {
       smokeSpawnAcc = 0;
@@ -541,50 +551,56 @@ function animateSmoke() {
         x: pos.x,
         y: pos.y,
         age: 0,
-        baseX: pos.x
+        baseX: pos.x,
+        // Each point gets unique random phases — no two curves alike
+        ph1: Math.random() * Math.PI * 2,
+        ph2: Math.random() * Math.PI * 2,
+        ph3: Math.random() * Math.PI * 2,
+        amp: 0.6 + Math.random() * 0.8,   // individual amplitude
+        riseSpeed: 0.15 + Math.random() * 0.08  // varied rise speed
       });
       if (smokePoints.length > SMOKE_MAX_PTS) smokePoints.pop();
     }
   }
 
-  // Drift all points upward and sideways
   for (var i = 0; i < smokePoints.length; i++) {
     var pt = smokePoints[i];
     pt.age++;
-    // Slow rise
-    pt.y -= 0.18;
-    // Gentle horizontal drift using sin — older points drift more
-    var drift = Math.sin(smokeT + i * 0.18) * 0.12 * (1 + i * 0.015);
-    pt.x = pt.baseX + Math.sin(smokeT * 0.7 + i * 0.22) * (0.5 + i * 0.08);
+    // Non-uniform rise
+    pt.y -= pt.riseSpeed;
+    // Multi-frequency drift: 3 sin waves with different speeds + turbulence
+    // Older points (larger i) drift further from center
+    var spread = 1 + i * 0.06;
+    var w1 = Math.sin(smokeT * 1.1  + pt.ph1 + i * 0.15) * 0.5 * pt.amp;
+    var w2 = Math.sin(smokeT * 0.43 + pt.ph2 + i * 0.09) * 0.9 * pt.amp;
+    var w3 = Math.sin(smokeT * 2.3  + pt.ph3 + i * 0.21) * 0.2 * pt.amp;
+    pt.x = pt.baseX + (w1 + w2 + w3) * spread + turbulence * (i / SMOKE_MAX_PTS);
   }
 
-  // Remove points that have risen off canvas
   while (smokePoints.length > 0 && smokePoints[smokePoints.length-1].y < -10) {
     smokePoints.pop();
   }
 
-  // Draw as a smooth stroke through all points
   if (smokePoints.length > 2) {
     smokeCtx.save();
     smokeCtx.lineCap = 'round';
     smokeCtx.lineJoin = 'round';
 
-    // Draw in segments so opacity can fade toward top
     for (var j = 1; j < smokePoints.length; j++) {
       var p0 = smokePoints[j-1];
       var p1 = smokePoints[j];
-      var frac = j / smokePoints.length;  // 0=base 1=top
-      // Near base: more opaque and thin; near top: transparent and wide
-      var alpha = Math.max(0, (1 - frac) * 0.22);
-      var lw = 0.8 + frac * 2.5;
+      var frac = j / smokePoints.length;
+      // Opacity: dense near base, fades out early (more natural dissipation)
+      var alpha = Math.max(0, (1 - frac * 1.2) * 0.2);
+      // Width: thin at base, widens as smoke rises and disperses
+      var lw = 0.6 + frac * 3.5;
 
-      smokeCtx.beginPath();
-      smokeCtx.moveTo(p0.x, p0.y);
-      // Catmull-Rom via midpoint for smoothness
       var mx = (p0.x + p1.x) / 2;
       var my = (p0.y + p1.y) / 2;
+      smokeCtx.beginPath();
+      smokeCtx.moveTo(p0.x, p0.y);
       smokeCtx.quadraticCurveTo(p0.x, p0.y, mx, my);
-      smokeCtx.strokeStyle = 'rgba(120,108,90,'+alpha+')';
+      smokeCtx.strokeStyle = 'rgba(110,100,85,'+alpha+')';
       smokeCtx.lineWidth = lw;
       smokeCtx.stroke();
     }
