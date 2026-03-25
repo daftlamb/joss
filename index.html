@@ -594,125 +594,125 @@ function animateSmoke() {
 }
 animateSmoke();
 
-// ---- Taihu Stone (太湖石) — procedural generation, unique each refresh ----
+// ---- Taihu Stone — Metaball distance field on canvas ----
 (function() {
   var c = document.getElementById('taihu-canvas');
   if (!c) return;
   var ctx = c.getContext('2d');
   var W = c.width, H = c.height;
-  var cx = W / 2;
 
-  // PRNG seeded from current second — different every refresh
+  // PRNG
   var seed = Math.floor(Date.now() / 1000) % 99999;
   function rand() {
     seed = (seed * 1664525 + 1013904223) & 0x7fffffff;
     return seed / 0x7fffffff;
   }
 
-  // Stone bounding box
-  var yTop = 10, yBot = 152;
-  var stoneH = yBot - yTop;
-  var halfW = 20 + rand() * 10;  // base half-width
+  // --- Define blobs (positive) and anti-blobs (holes) ---
+  // Stone shape: tall column cx=60, spanning y 5..155
+  var cx = W / 2;
 
-  // Generate irregular perimeter points
-  // We place points around an ellipse and perturb them radially
-  var nPts = 16 + Math.floor(rand() * 6);
-  var pts = [];
-  var yCen = (yTop + yBot) / 2;
-  var ySpan = stoneH / 2;
+  // Positive blobs — form the stone body
+  var blobs = [
+    // Core column
+    {x: cx,       y: 80,  r: 28},
+    {x: cx,       y: 40,  r: 22},
+    {x: cx,       y: 120, r: 24},
+    // Asymmetric protrusions — randomized each refresh
+    {x: cx + 14 + (rand()-0.5)*8,  y: 30 + rand()*15,  r: 14 + rand()*6},
+    {x: cx - 16 + (rand()-0.5)*8,  y: 55 + rand()*15,  r: 13 + rand()*6},
+    {x: cx + 18 + (rand()-0.5)*8,  y: 90 + rand()*15,  r: 12 + rand()*5},
+    {x: cx - 12 + (rand()-0.5)*6,  y: 115 + rand()*10, r: 11 + rand()*5},
+    // Top peak
+    {x: cx + (rand()-0.5)*10,      y: 14 + rand()*8,   r: 10 + rand()*4},
+  ];
 
-  for (var i = 0; i < nPts; i++) {
-    var angle = (i / nPts) * Math.PI * 2 - Math.PI / 2;
-    // Elliptical radius — taller than wide
-    var er = halfW * (0.6 + 0.4 * Math.abs(Math.cos(angle)));
-    // Random radial jag — bigger lumps on upper half
-    var jag = (rand() - 0.35) * 16 * (angle < 0 ? 1.4 : 0.9);
-    var r = Math.max(7, er + jag);
-    pts.push([
-      cx + r * Math.cos(angle),
-      yCen + ySpan * Math.sin(angle) * (0.9 + rand() * 0.2)
-    ]);
-  }
-
-  // Sort clockwise
-  pts.sort(function(a, b) {
-    return Math.atan2(a[1] - yCen, a[0] - cx) - Math.atan2(b[1] - yCen, b[0] - cx);
-  });
-
-  // Catmull-Rom smooth closed path
-  function drawBlob(p) {
-    var n = p.length;
-    ctx.beginPath();
-    for (var i = 0; i < n; i++) {
-      var p0 = p[(i-1+n)%n], p1 = p[i], p2 = p[(i+1)%n], p3 = p[(i+2)%n];
-      if (i === 0) ctx.moveTo(p1[0], p1[1]);
-      ctx.bezierCurveTo(
-        p1[0]+(p2[0]-p0[0])/6, p1[1]+(p2[1]-p0[1])/6,
-        p2[0]-(p3[0]-p1[0])/6, p2[1]-(p3[1]-p1[1])/6,
-        p2[0], p2[1]
-      );
-    }
-    ctx.closePath();
-  }
-
-  // Fill with gradient
-  ctx.save();
-  ctx.shadowColor = 'rgba(60,90,110,.25)';
-  ctx.shadowBlur = 12; ctx.shadowOffsetX = 4; ctx.shadowOffsetY = 7;
-  drawBlob(pts);
-  var g = ctx.createLinearGradient(cx - halfW, yTop, cx + halfW, yBot);
-  g.addColorStop(0,   'rgba(190,202,210,.95)');
-  g.addColorStop(0.4, 'rgba(152,168,180,.95)');
-  g.addColorStop(1,   'rgba(100,120,135,.95)');
-  ctx.fillStyle = g; ctx.fill();
-  ctx.restore();
-
-  // Clip to stone for interior details
-  ctx.save();
-  drawBlob(pts); ctx.clip();
-
-  // Dark patches
-  for (var p2i = 0; p2i < 8 + Math.floor(rand()*8); p2i++) {
-    var px = cx + (rand()-.5)*halfW*2, py = yTop + rand()*stoneH;
-    var pr = 3 + rand()*9;
-    var pg = ctx.createRadialGradient(px,py,0,px,py,pr);
-    pg.addColorStop(0,'rgba(40,65,90,.2)'); pg.addColorStop(1,'rgba(40,65,90,0)');
-    ctx.beginPath(); ctx.ellipse(px,py,pr,pr*(.5+rand()*.7),rand()*Math.PI,0,Math.PI*2);
-    ctx.fillStyle=pg; ctx.fill();
-  }
-  // Highlight
-  var hi = ctx.createLinearGradient(cx-halfW-4,yTop,cx+4,yBot*.6);
-  hi.addColorStop(0,'rgba(255,255,255,.14)'); hi.addColorStop(1,'rgba(255,255,255,0)');
-  drawBlob(pts); ctx.fillStyle=hi; ctx.fill();
-  ctx.restore();
-
-  // Holes (1–3, each with shadow ring)
-  var nHoles = 1 + Math.floor(rand()*3);
+  // Hole blobs — cut into the stone (anti-metaballs, subtracted)
+  var nHoles = 2 + Math.floor(rand() * 3);
+  var holes = [];
   for (var h = 0; h < nHoles; h++) {
-    var hx = cx + (rand()-.5)*halfW*1.4;
-    var hy = yTop + 22 + rand()*(stoneH-50);
-    var hrx = 5 + rand()*12, hry = 4 + rand()*10;
-    var hrot = (rand()-.5)*.8;
-    ctx.save();
-    ctx.globalCompositeOperation = 'destination-out';
-    ctx.beginPath(); ctx.ellipse(hx,hy,hrx,hry,hrot,0,Math.PI*2); ctx.fill();
-    ctx.restore();
-    ctx.beginPath(); ctx.ellipse(hx,hy,hrx+2,hry+2,hrot,0,Math.PI*2);
-    ctx.strokeStyle='rgba(30,55,80,.35)'; ctx.lineWidth=3; ctx.stroke();
+    holes.push({
+      x: cx + (rand()-0.5) * 30,
+      y: 35 + rand() * 100,
+      r: 8 + rand() * 14
+    });
   }
 
-  // Pits
-  for (var q = 0; q < 12 + Math.floor(rand()*14); q++) {
-    var qx=cx+(rand()-.5)*halfW*1.8, qy=yTop+5+rand()*(stoneH-10);
-    ctx.beginPath(); ctx.arc(qx,qy,1+rand()*2,0,Math.PI*2);
-    ctx.fillStyle='rgba(35,60,85,.22)'; ctx.fill();
-  }
+  // --- Render via pixel-level distance field ---
+  var imgData = ctx.createImageData(W, H);
+  var pix = imgData.data;
 
-  // Incense hole at topmost point
-  var topPt = pts.reduce(function(a,b){return a[1]<b[1]?a:b;});
-  ctx.beginPath(); ctx.arc(topPt[0], topPt[1]+4, 2.5, 0, Math.PI*2);
-  ctx.fillStyle='rgba(20,40,65,.75)'; ctx.fill();
-  window.taihuHolePos = {x: topPt[0], y: topPt[1]+4};
+  // Stone color: dark blue-grey with subtle variation
+  var stoneR = 88, stoneG = 100, stoneB = 115;
+
+  var THRESHOLD = 1.0;
+
+  for (var py = 0; py < H; py++) {
+    for (var px2 = 0; px2 < W; px2++) {
+      // Sum of metaball influence (positive)
+      var field = 0;
+      for (var bi = 0; bi < blobs.length; bi++) {
+        var b = blobs[bi];
+        var dx = px2 - b.x, dy = py - b.y;
+        var d2 = dx*dx + dy*dy;
+        if (d2 < 0.01) d2 = 0.01;
+        field += (b.r * b.r) / d2;
+      }
+      // Subtract hole influence
+      var holeField = 0;
+      for (var hi = 0; hi < holes.length; hi++) {
+        var hh = holes[hi];
+        var hx = px2 - hh.x, hy = py - hh.y;
+        var hd2 = hx*hx + hy*hy;
+        if (hd2 < 0.01) hd2 = 0.01;
+        holeField += (hh.r * hh.r) / hd2;
+      }
+      var net = field - holeField * 0.85;
+
+      if (net >= THRESHOLD) {
+        var idx = (py * W + px2) * 4;
+        // Shading: brighter toward top-left (light source)
+        var lightFactor = 1.0 - py / H * 0.35 + (W - px2) / W * 0.15;
+        // Edge darkening: pixels near threshold appear darker (depth)
+        var edgeDark = Math.min(1, (net - THRESHOLD) * 1.2);
+        var shade = lightFactor * (0.6 + edgeDark * 0.4);
+        // Small surface variation using sine noise
+        var noise = 0.92 + 0.08 * Math.sin(px2 * 0.4 + py * 0.3);
+        shade *= noise;
+
+        pix[idx]   = Math.round(stoneR * shade);
+        pix[idx+1] = Math.round(stoneG * shade);
+        pix[idx+2] = Math.round(stoneB * shade);
+        pix[idx+3] = 255;
+      }
+    }
+  }
+  ctx.putImageData(imgData, 0, 0);
+
+  // --- Add surface pits as dark circles on top ---
+  ctx.globalCompositeOperation = 'multiply';
+  var nPits = 10 + Math.floor(rand() * 12);
+  for (var q = 0; q < nPits; q++) {
+    var qx = cx + (rand()-0.5) * 44;
+    var qy = 15 + rand() * 130;
+    var qr = 2 + rand() * 4;
+    var pg = ctx.createRadialGradient(qx, qy, 0, qx, qy, qr);
+    pg.addColorStop(0, 'rgba(20,30,45,.55)');
+    pg.addColorStop(1, 'rgba(20,30,45,0)');
+    ctx.beginPath();
+    ctx.arc(qx, qy, qr, 0, Math.PI*2);
+    ctx.fillStyle = pg;
+    ctx.fill();
+  }
+  ctx.globalCompositeOperation = 'source-over';
+
+  // Incense hole at very top of stone
+  var topY = 10;
+  ctx.beginPath();
+  ctx.arc(cx, topY + 3, 2.5, 0, Math.PI*2);
+  ctx.fillStyle = 'rgba(10,20,35,.8)';
+  ctx.fill();
+  window.taihuHolePos = {x: cx, y: topY + 3};
 })();
 
 // ---- Ember glow pulse ----
