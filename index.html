@@ -1,0 +1,582 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Incense It — 焚香计时</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500&family=Noto+Serif+SC:wght@300;400&display=swap" rel="stylesheet" />
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#1a1610;
+  --surface:#221e17;
+  --border:#3a3328;
+  --text:#e8dfc8;
+  --muted:#7a6e5a;
+  --accent:#c8854a;
+  --accent2:#e8a86a;
+  --smoke:#c8b89a;
+  --ember:#ff6030;
+}
+html,body{height:100%;overflow:hidden}
+body{
+  background:var(--bg);
+  color:var(--text);
+  font-family:'Outfit',sans-serif;
+  font-weight:300;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  min-height:100vh;
+  user-select:none;
+}
+
+/* Header */
+header{
+  position:fixed;top:0;left:0;right:0;
+  height:48px;
+  display:flex;align-items:center;justify-content:space-between;
+  padding:0 24px;
+  background:rgba(26,22,16,.85);
+  backdrop-filter:blur(8px);
+  border-bottom:1px solid var(--border);
+  z-index:100;
+}
+.brand{font-size:15px;font-weight:500;letter-spacing:.02em}
+.brand span{color:var(--accent)}
+.header-right{display:flex;gap:10px;align-items:center}
+.btn-icon{background:none;border:1px solid var(--border);border-radius:6px;color:var(--muted);font-size:11px;padding:4px 10px;cursor:pointer;font-family:inherit;transition:all .15s}
+.btn-icon:hover{color:var(--text);border-color:var(--muted)}
+.stats-pill{font-size:10px;color:var(--muted);letter-spacing:.04em}
+
+/* Main scene */
+#scene{
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:flex-end;
+  position:relative;
+  width:320px;
+  height:520px;
+  margin-top:48px;
+}
+
+/* Canvas for smoke + ember */
+#smoke-canvas{
+  position:absolute;
+  top:0;left:0;
+  width:100%;height:100%;
+  pointer-events:none;
+}
+
+/* Incense stick */
+.incense-wrap{
+  position:relative;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:flex-end;
+  z-index:2;
+}
+#stick-container{
+  position:relative;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+}
+#stick-ash{
+  width:3px;
+  border-radius:2px 2px 0 0;
+  background:linear-gradient(to bottom, #888 0%, #aaa 40%, #ccc 100%);
+  transition:height .5s ease;
+}
+#stick-body{
+  width:3px;
+  border-radius:0;
+  background:linear-gradient(to bottom, #8b6914 0%, #a07828 50%, #7a5c10 100%);
+  transition:height .3s linear;
+}
+#stick-tip{
+  width:5px;height:5px;
+  border-radius:50%;
+  background:var(--ember);
+  box-shadow:0 0 6px 3px rgba(255,80,20,.5), 0 0 12px 6px rgba(255,120,30,.2);
+  transition:opacity .5s;
+  margin:0 auto;
+}
+
+/* Holder */
+.holder-wrap{
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  margin-top:4px;
+}
+.holder-dish{
+  width:60px;height:14px;
+  background:linear-gradient(to bottom, #5a4a30 0%, #3a3020 100%);
+  border-radius:50%;
+  box-shadow:0 4px 12px rgba(0,0,0,.5);
+  position:relative;
+  display:flex;align-items:center;justify-content:center;
+}
+.holder-dish::after{
+  content:'';
+  width:4px;height:8px;
+  background:#2a2018;
+  border-radius:1px;
+  position:absolute;top:3px;
+}
+.holder-ash-pile{
+  width:18px;
+  height:0;
+  background:linear-gradient(to top, #aaa 0%, #ddd 100%);
+  border-radius:50% 50% 0 0;
+  transition:height .5s ease;
+  margin-top:-2px;
+}
+
+/* Time display */
+.time-display{
+  margin-top:32px;
+  text-align:center;
+}
+.time-big{
+  font-size:42px;
+  font-weight:300;
+  letter-spacing:.06em;
+  color:var(--text);
+  font-variant-numeric:tabular-nums;
+  line-height:1;
+}
+.time-label{
+  font-size:11px;
+  color:var(--muted);
+  letter-spacing:.12em;
+  text-transform:uppercase;
+  margin-top:6px;
+  font-family:'Noto Serif SC',serif;
+}
+
+/* Duration selector */
+.duration-selector{
+  display:flex;
+  gap:8px;
+  margin-top:24px;
+  flex-wrap:wrap;
+  justify-content:center;
+}
+.dur-btn{
+  background:none;
+  border:1px solid var(--border);
+  border-radius:8px;
+  color:var(--muted);
+  font-family:'Noto Serif SC',serif;
+  font-size:12px;
+  padding:8px 14px;
+  cursor:pointer;
+  transition:all .2s;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  gap:3px;
+  min-width:52px;
+}
+.dur-btn .dur-en{font-size:10px;font-family:'Outfit',sans-serif;opacity:.6}
+.dur-btn:hover{border-color:var(--accent);color:var(--accent)}
+.dur-btn.active{border-color:var(--accent);color:var(--accent);background:rgba(200,133,74,.08)}
+
+/* Controls */
+.controls{
+  display:flex;
+  gap:12px;
+  margin-top:24px;
+  align-items:center;
+}
+.btn-main{
+  background:var(--accent);
+  border:none;
+  border-radius:10px;
+  color:#1a1610;
+  font-family:'Outfit',sans-serif;
+  font-size:13px;
+  font-weight:500;
+  padding:12px 32px;
+  cursor:pointer;
+  transition:all .2s;
+  letter-spacing:.04em;
+}
+.btn-main:hover{background:var(--accent2)}
+.btn-main:disabled{opacity:.4;cursor:not-allowed}
+.btn-sec{
+  background:none;
+  border:1px solid var(--border);
+  border-radius:10px;
+  color:var(--muted);
+  font-family:'Outfit',sans-serif;
+  font-size:12px;
+  padding:12px 20px;
+  cursor:pointer;
+  transition:all .2s;
+}
+.btn-sec:hover{border-color:var(--muted);color:var(--text)}
+
+/* Slogan */
+.slogan{
+  position:fixed;
+  bottom:24px;
+  font-size:11px;
+  color:var(--muted);
+  letter-spacing:.1em;
+  font-family:'Noto Serif SC',serif;
+  opacity:.6;
+}
+
+/* Done overlay */
+#done-overlay{
+  display:none;
+  position:fixed;inset:0;
+  background:rgba(26,22,16,.92);
+  z-index:200;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  gap:16px;
+}
+#done-overlay.show{display:flex}
+.done-title{font-size:22px;font-weight:300;color:var(--text);letter-spacing:.06em;font-family:'Noto Serif SC',serif}
+.done-sub{font-size:12px;color:var(--muted);letter-spacing:.08em}
+.done-stats{font-size:11px;color:var(--accent);letter-spacing:.06em;margin-top:4px}
+
+/* Holder style variants */
+.holder-wrap.style-cone .holder-dish{
+  width:40px;height:40px;border-radius:50%;
+  background:radial-gradient(circle at 40% 35%, #6a5a3a, #2a2018);
+}
+.holder-wrap.style-plate .holder-dish{
+  width:80px;height:8px;border-radius:4px;
+  background:linear-gradient(to bottom, #6a5a3a, #3a3020);
+}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="brand">Incense<span>It</span></div>
+  <div class="header-right">
+    <span class="stats-pill" id="stats-pill">今日 0 炷 · 0 min</span>
+    <button class="btn-icon" id="btn-holder">香插 ▾</button>
+    <button class="btn-icon" id="btn-about">i</button>
+  </div>
+</header>
+
+<div id="scene">
+  <canvas id="smoke-canvas"></canvas>
+
+  <div class="incense-wrap">
+    <div id="stick-container">
+      <div id="stick-ash" style="height:0px"></div>
+      <div id="stick-body" style="height:200px"></div>
+      <div id="stick-tip"></div>
+    </div>
+    <div class="holder-wrap" id="holder-wrap">
+      <div class="holder-dish"></div>
+      <div class="holder-ash-pile" id="ash-pile"></div>
+    </div>
+  </div>
+</div>
+
+<div class="time-display">
+  <div class="time-big" id="time-display">25:00</div>
+  <div class="time-label" id="time-label">小坐 · 等待点燃</div>
+</div>
+
+<div class="duration-selector">
+  <button class="dur-btn" data-min="10"><span>小坐</span><span class="dur-en">10 min</span></button>
+  <button class="dur-btn active" data-min="25"><span>一刻</span><span class="dur-en">25 min</span></button>
+  <button class="dur-btn" data-min="45"><span>半晌</span><span class="dur-en">45 min</span></button>
+  <button class="dur-btn" data-min="60"><span>一炉</span><span class="dur-en">60 min</span></button>
+  <button class="dur-btn" data-min="90"><span>长思</span><span class="dur-en">90 min</span></button>
+</div>
+
+<div class="controls">
+  <button class="btn-main" id="btn-start">点燃</button>
+  <button class="btn-sec" id="btn-reset" style="display:none">熄灭</button>
+</div>
+
+<div class="slogan">以一炷香，度量一段专注。</div>
+
+<!-- Done overlay -->
+<div id="done-overlay">
+  <div class="done-title">香尽</div>
+  <div class="done-sub">专注时间结束</div>
+  <div class="done-stats" id="done-stats"></div>
+  <button class="btn-main" id="btn-done-close" style="margin-top:16px">再燃一炷</button>
+</div>
+
+<script>
+// ---- State ----
+var totalSec = 25 * 60;
+var remainSec = totalSec;
+var running = false;
+var paused = false;
+var timer = null;
+var todayCount = parseInt(localStorage.getItem('inc_count')||'0');
+var todayMin = parseInt(localStorage.getItem('inc_min')||'0');
+
+// Stick dimensions
+var STICK_MAX_H = 200;  // px full body
+var ASH_MAX_H = 0;
+
+// DOM refs
+var timeDisplay = document.getElementById('time-display');
+var timeLabel = document.getElementById('time-label');
+var stickBody = document.getElementById('stick-body');
+var stickAsh = document.getElementById('stick-ash');
+var stickTip = document.getElementById('stick-tip');
+var ashPile = document.getElementById('ash-pile');
+var btnStart = document.getElementById('btn-start');
+var btnReset = document.getElementById('btn-reset');
+var doneOverlay = document.getElementById('done-overlay');
+var doneStats = document.getElementById('done-stats');
+var statsPill = document.getElementById('stats-pill');
+
+// Duration names
+var DUR_NAMES = {10:'小坐',25:'一刻',45:'半晌',60:'一炉',90:'长思'};
+
+// ---- Duration selector ----
+var selectedMin = 25;
+document.querySelectorAll('.dur-btn').forEach(function(btn) {
+  btn.addEventListener('click', function() {
+    if (running) return;
+    document.querySelectorAll('.dur-btn').forEach(function(b){b.classList.remove('active');});
+    this.classList.add('active');
+    selectedMin = parseInt(this.dataset.min);
+    totalSec = selectedMin * 60;
+    remainSec = totalSec;
+    updateTimeDisplay();
+    resetStick();
+    timeLabel.textContent = (DUR_NAMES[selectedMin]||selectedMin+' min') + ' · 等待点燃';
+  });
+});
+
+// ---- Time display ----
+function updateTimeDisplay() {
+  var m = Math.floor(remainSec / 60);
+  var s = remainSec % 60;
+  timeDisplay.textContent = (m<10?'0':'')+m+':'+(s<10?'0':'')+s;
+}
+
+// ---- Stick visual ----
+function updateStick() {
+  var progress = 1 - remainSec / totalSec;  // 0→1
+  var bodyH = Math.round(STICK_MAX_H * (1 - progress));
+  var ashH = Math.round(STICK_MAX_H * progress);
+  var pileH = Math.round(ashH * 0.12);
+  stickBody.style.height = bodyH + 'px';
+  stickAsh.style.height = ashH + 'px';
+  ashPile.style.height = Math.min(pileH, 18) + 'px';
+}
+
+function resetStick() {
+  stickBody.style.height = STICK_MAX_H + 'px';
+  stickAsh.style.height = '0px';
+  ashPile.style.height = '0px';
+  stickTip.style.opacity = '0';
+}
+
+// ---- Timer ----
+function startTimer() {
+  running = true;
+  paused = false;
+  stickTip.style.opacity = '1';
+  btnStart.textContent = '暂停';
+  btnReset.style.display = '';
+  document.querySelectorAll('.dur-btn').forEach(function(b){b.style.opacity='.4';b.style.pointerEvents='none';});
+  timeLabel.textContent = (DUR_NAMES[selectedMin]||selectedMin+' min') + ' · 专注中';
+  smokeActive = true;
+  tick();
+}
+
+function pauseTimer() {
+  paused = true;
+  running = false;
+  clearTimeout(timer);
+  btnStart.textContent = '继续';
+  timeLabel.textContent = (DUR_NAMES[selectedMin]||selectedMin+' min') + ' · 已暂停';
+  smokeActive = false;
+}
+
+function resumeTimer() {
+  running = true;
+  paused = false;
+  btnStart.textContent = '暂停';
+  timeLabel.textContent = (DUR_NAMES[selectedMin]||selectedMin+' min') + ' · 专注中';
+  smokeActive = true;
+  tick();
+}
+
+function resetTimer() {
+  running = false;
+  paused = false;
+  clearTimeout(timer);
+  remainSec = totalSec;
+  smokeActive = false;
+  updateTimeDisplay();
+  resetStick();
+  btnStart.textContent = '点燃';
+  btnReset.style.display = 'none';
+  document.querySelectorAll('.dur-btn').forEach(function(b){b.style.opacity='';b.style.pointerEvents='';});
+  timeLabel.textContent = (DUR_NAMES[selectedMin]||selectedMin+' min') + ' · 等待点燃';
+  particles = [];
+}
+
+function tick() {
+  if (!running) return;
+  timer = setTimeout(function() {
+    remainSec--;
+    updateTimeDisplay();
+    updateStick();
+    if (remainSec <= 0) {
+      finishTimer();
+    } else {
+      tick();
+    }
+  }, 1000);
+}
+
+function finishTimer() {
+  running = false;
+  smokeActive = false;
+  stickTip.style.opacity = '0';
+  stickBody.style.height = '0px';
+  stickAsh.style.height = STICK_MAX_H + 'px';
+  ashPile.style.height = '18px';
+  // Stats
+  todayCount++;
+  todayMin += selectedMin;
+  localStorage.setItem('inc_count', todayCount);
+  localStorage.setItem('inc_min', todayMin);
+  updateStats();
+  // Done overlay
+  doneStats.textContent = '今日已专注 ' + todayCount + ' 炷 · 共 ' + todayMin + ' 分钟';
+  setTimeout(function() {
+    doneOverlay.classList.add('show');
+  }, 800);
+}
+
+function updateStats() {
+  statsPill.textContent = '今日 ' + todayCount + ' 炷 · ' + todayMin + ' min';
+}
+updateStats();
+updateTimeDisplay();
+resetStick();
+stickTip.style.opacity = '0';
+
+// ---- Button handlers ----
+btnStart.addEventListener('click', function() {
+  if (!running && !paused) startTimer();
+  else if (running) pauseTimer();
+  else if (paused) resumeTimer();
+});
+
+btnReset.addEventListener('click', function() {
+  if (confirm('熄灭这炷香？')) resetTimer();
+});
+
+document.getElementById('btn-done-close').addEventListener('click', function() {
+  doneOverlay.classList.remove('show');
+  resetTimer();
+});
+
+// ---- Smoke particle system ----
+var smokeCanvas = document.getElementById('smoke-canvas');
+var smokeCtx = smokeCanvas.getContext('2d');
+var particles = [];
+var smokeActive = false;
+
+function resizeSmokeCanvas() {
+  var scene = document.getElementById('scene');
+  smokeCanvas.width = scene.offsetWidth;
+  smokeCanvas.height = scene.offsetHeight;
+}
+resizeSmokeCanvas();
+window.addEventListener('resize', resizeSmokeCanvas);
+
+function getEmberPos() {
+  // Ember tip position relative to smoke canvas
+  var sceneEl = document.getElementById('scene');
+  var tipEl = document.getElementById('stick-tip');
+  var sceneRect = sceneEl.getBoundingClientRect();
+  var tipRect = tipEl.getBoundingClientRect();
+  return {
+    x: tipRect.left - sceneRect.left + tipRect.width/2,
+    y: tipRect.top - sceneRect.top + tipRect.height/2
+  };
+}
+
+function spawnParticle(pos) {
+  particles.push({
+    x: pos.x + (Math.random()-0.5)*3,
+    y: pos.y,
+    vx: (Math.random()-0.5)*0.4,
+    vy: -(0.5 + Math.random()*0.8),
+    life: 1,
+    decay: 0.004 + Math.random()*0.004,
+    size: 2 + Math.random()*3,
+    wobble: Math.random()*Math.PI*2,
+    wobbleSpeed: 0.02 + Math.random()*0.02,
+  });
+}
+
+function animateSmoke() {
+  smokeCtx.clearRect(0, 0, smokeCanvas.width, smokeCanvas.height);
+
+  if (smokeActive && running) {
+    var pos = getEmberPos();
+    // Spawn 1-2 particles per frame
+    var spawn = Math.random() < 0.6 ? 1 : 2;
+    for (var i=0; i<spawn; i++) spawnParticle(pos);
+  }
+
+  for (var i = particles.length-1; i >= 0; i--) {
+    var p = particles[i];
+    p.wobble += p.wobbleSpeed;
+    p.x += p.vx + Math.sin(p.wobble) * 0.3;
+    p.y += p.vy;
+    p.vy *= 0.99;  // slight deceleration
+    p.size += 0.06;
+    p.life -= p.decay;
+
+    if (p.life <= 0) { particles.splice(i,1); continue; }
+
+    var alpha = p.life * 0.18;
+    smokeCtx.beginPath();
+    smokeCtx.arc(p.x, p.y, p.size, 0, Math.PI*2);
+    smokeCtx.fillStyle = 'rgba(200,184,154,'+alpha+')';
+    smokeCtx.fill();
+  }
+
+  requestAnimationFrame(animateSmoke);
+}
+animateSmoke();
+
+// ---- Ember glow pulse ----
+var emberEl = document.getElementById('stick-tip');
+var emberT = 0;
+function pulseEmber() {
+  if (running) {
+    emberT += 0.05;
+    var glow = 4 + Math.sin(emberT)*2;
+    var glow2 = 8 + Math.sin(emberT)*3;
+    emberEl.style.boxShadow = '0 0 '+glow+'px '+(glow/2)+'px rgba(255,80,20,.6), 0 0 '+glow2+'px '+(glow2/2)+'px rgba(255,120,30,.25)';
+  }
+  requestAnimationFrame(pulseEmber);
+}
+pulseEmber();
+</script>
+</body>
+</html>
