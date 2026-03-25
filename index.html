@@ -10,15 +10,15 @@
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 :root{
-  --bg:#1a1610;
-  --surface:#221e17;
-  --border:#3a3328;
-  --text:#e8dfc8;
-  --muted:#7a6e5a;
-  --accent:#c8854a;
-  --accent2:#e8a86a;
-  --smoke:#c8b89a;
-  --ember:#ff6030;
+  --bg:#f7f4ef;
+  --surface:#eeeae2;
+  --border:#d8d0c0;
+  --text:#2a2418;
+  --muted:#9a8e7a;
+  --accent:#8a5c30;
+  --accent2:#b07840;
+  --smoke:#8a7a68;
+  --ember:#e84020;
 }
 html,body{height:100%;overflow:hidden}
 body{
@@ -40,7 +40,7 @@ header{
   height:48px;
   display:flex;align-items:center;justify-content:space-between;
   padding:0 24px;
-  background:rgba(26,22,16,.85);
+  background:rgba(247,244,239,.92);
   backdrop-filter:blur(8px);
   border-bottom:1px solid var(--border);
   z-index:100;
@@ -90,7 +90,7 @@ header{
 #stick-ash{
   width:3px;
   border-radius:2px 2px 0 0;
-  background:linear-gradient(to bottom, #888 0%, #aaa 40%, #ccc 100%);
+  background:linear-gradient(to bottom, #aaa 0%, #c8c0b0 40%, #ddd8ce 100%);
   transition:height .5s ease;
 }
 #stick-body{
@@ -117,9 +117,9 @@ header{
 }
 .holder-dish{
   width:60px;height:14px;
-  background:linear-gradient(to bottom, #5a4a30 0%, #3a3020 100%);
+  background:linear-gradient(to bottom, #8a7a5a 0%, #5a4a30 100%);
   border-radius:50%;
-  box-shadow:0 4px 12px rgba(0,0,0,.5);
+  box-shadow:0 4px 12px rgba(0,0,0,.15);
   position:relative;
   display:flex;align-items:center;justify-content:center;
 }
@@ -431,7 +431,7 @@ function resetTimer() {
   btnReset.style.display = 'none';
   document.querySelectorAll('.dur-btn').forEach(function(b){b.style.opacity='';b.style.pointerEvents='';});
   timeLabel.textContent = (DUR_NAMES[selectedMin]||selectedMin+' min') + ' · 等待点燃';
-  particles = [];
+  smokePoints = [];
 }
 
 function tick() {
@@ -492,11 +492,16 @@ document.getElementById('btn-done-close').addEventListener('click', function() {
   resetTimer();
 });
 
-// ---- Smoke particle system ----
+// ---- Smoke — single continuous rising thread ----
 var smokeCanvas = document.getElementById('smoke-canvas');
 var smokeCtx = smokeCanvas.getContext('2d');
-var particles = [];
 var smokeActive = false;
+
+// Smoke is represented as an array of points forming a rising thread
+// Each point drifts upward and sideways gently
+var smokePoints = [];   // [{x,y,age}]
+var SMOKE_MAX_PTS = 120;
+var smokeSpawnAcc = 0;
 
 function resizeSmokeCanvas() {
   var scene = document.getElementById('scene');
@@ -507,7 +512,6 @@ resizeSmokeCanvas();
 window.addEventListener('resize', resizeSmokeCanvas);
 
 function getEmberPos() {
-  // Ember tip position relative to smoke canvas
   var sceneEl = document.getElementById('scene');
   var tipEl = document.getElementById('stick-tip');
   var sceneRect = sceneEl.getBoundingClientRect();
@@ -518,46 +522,70 @@ function getEmberPos() {
   };
 }
 
-function spawnParticle(pos) {
-  particles.push({
-    x: pos.x + (Math.random()-0.5)*3,
-    y: pos.y,
-    vx: (Math.random()-0.5)*0.4,
-    vy: -(0.5 + Math.random()*0.8),
-    life: 1,
-    decay: 0.004 + Math.random()*0.004,
-    size: 2 + Math.random()*3,
-    wobble: Math.random()*Math.PI*2,
-    wobbleSpeed: 0.02 + Math.random()*0.02,
-  });
-}
+var smokeT = 0;
 
 function animateSmoke() {
   smokeCtx.clearRect(0, 0, smokeCanvas.width, smokeCanvas.height);
+  smokeT += 0.008;
 
   if (smokeActive && running) {
     var pos = getEmberPos();
-    // Spawn 1-2 particles per frame
-    var spawn = Math.random() < 0.6 ? 1 : 2;
-    for (var i=0; i<spawn; i++) spawnParticle(pos);
+    // Add new base point every ~3 frames
+    smokeSpawnAcc++;
+    if (smokeSpawnAcc >= 3) {
+      smokeSpawnAcc = 0;
+      smokePoints.unshift({
+        x: pos.x,
+        y: pos.y,
+        age: 0,
+        baseX: pos.x
+      });
+      if (smokePoints.length > SMOKE_MAX_PTS) smokePoints.pop();
+    }
   }
 
-  for (var i = particles.length-1; i >= 0; i--) {
-    var p = particles[i];
-    p.wobble += p.wobbleSpeed;
-    p.x += p.vx + Math.sin(p.wobble) * 0.3;
-    p.y += p.vy;
-    p.vy *= 0.99;  // slight deceleration
-    p.size += 0.06;
-    p.life -= p.decay;
+  // Drift all points upward and sideways
+  for (var i = 0; i < smokePoints.length; i++) {
+    var pt = smokePoints[i];
+    pt.age++;
+    // Slow rise
+    pt.y -= 0.18;
+    // Gentle horizontal drift using sin — older points drift more
+    var drift = Math.sin(smokeT + i * 0.18) * 0.12 * (1 + i * 0.015);
+    pt.x = pt.baseX + Math.sin(smokeT * 0.7 + i * 0.22) * (0.5 + i * 0.08);
+  }
 
-    if (p.life <= 0) { particles.splice(i,1); continue; }
+  // Remove points that have risen off canvas
+  while (smokePoints.length > 0 && smokePoints[smokePoints.length-1].y < -10) {
+    smokePoints.pop();
+  }
 
-    var alpha = p.life * 0.18;
-    smokeCtx.beginPath();
-    smokeCtx.arc(p.x, p.y, p.size, 0, Math.PI*2);
-    smokeCtx.fillStyle = 'rgba(200,184,154,'+alpha+')';
-    smokeCtx.fill();
+  // Draw as a smooth stroke through all points
+  if (smokePoints.length > 2) {
+    smokeCtx.save();
+    smokeCtx.lineCap = 'round';
+    smokeCtx.lineJoin = 'round';
+
+    // Draw in segments so opacity can fade toward top
+    for (var j = 1; j < smokePoints.length; j++) {
+      var p0 = smokePoints[j-1];
+      var p1 = smokePoints[j];
+      var frac = j / smokePoints.length;  // 0=base 1=top
+      // Near base: more opaque and thin; near top: transparent and wide
+      var alpha = Math.max(0, (1 - frac) * 0.22);
+      var lw = 0.8 + frac * 2.5;
+
+      smokeCtx.beginPath();
+      smokeCtx.moveTo(p0.x, p0.y);
+      // Catmull-Rom via midpoint for smoothness
+      var mx = (p0.x + p1.x) / 2;
+      var my = (p0.y + p1.y) / 2;
+      smokeCtx.quadraticCurveTo(p0.x, p0.y, mx, my);
+      smokeCtx.strokeStyle = 'rgba(120,108,90,'+alpha+')';
+      smokeCtx.lineWidth = lw;
+      smokeCtx.stroke();
+    }
+    smokeCtx.restore();
   }
 
   requestAnimationFrame(animateSmoke);
