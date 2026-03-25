@@ -103,9 +103,10 @@ header{
   width:5px;height:5px;
   border-radius:50%;
   background:var(--ember);
-  box-shadow:0 0 6px 3px rgba(255,80,20,.5), 0 0 12px 6px rgba(255,120,30,.2);
+  box-shadow:0 0 6px 3px rgba(220,60,10,.5), 0 0 12px 6px rgba(220,100,20,.2);
   transition:opacity .5s;
   margin:0 auto;
+  flex-shrink:0;
 }
 
 /* Holder */
@@ -281,8 +282,8 @@ header{
   <div class="incense-wrap">
     <div id="stick-container">
       <div id="stick-ash" style="height:0px"></div>
-      <div id="stick-body" style="height:200px"></div>
       <div id="stick-tip"></div>
+      <div id="stick-body" style="height:200px"></div>
     </div>
     <div class="holder-wrap" id="holder-wrap">
       <canvas id="taihu-canvas" width="120" height="160" style="display:block;margin:0 auto"></canvas>
