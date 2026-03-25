@@ -115,15 +115,20 @@ header{
   flex-direction:column;
   align-items:center;
   margin-top:4px;
-}
-.holder-dish{
-  width:60px;height:14px;
-  background:linear-gradient(to bottom, #8a7a5a 0%, #5a4a30 100%);
-  border-radius:50%;
-  box-shadow:0 4px 12px rgba(0,0,0,.15);
   position:relative;
-  display:flex;align-items:center;justify-content:center;
 }
+#taihu-svg-wrap{
+  position:relative;
+  width:120px;
+  height:160px;
+  overflow:visible;
+}
+#taihu-svg{
+  width:120px;
+  height:160px;
+  display:block;
+}
+
 .holder-dish::after{
   content:'';
   width:4px;height:8px;
@@ -286,7 +291,29 @@ header{
       <div id="stick-body" style="height:200px"></div>
     </div>
     <div class="holder-wrap" id="holder-wrap">
-      <canvas id="taihu-canvas" width="120" height="160" style="display:block;margin:0 auto"></canvas>
+      <div id="taihu-svg-wrap">
+        <svg id="taihu-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 481.36 661.74">
+          <defs>
+            <style>
+              .st0{fill:#9fa0a0}.st1{fill:#c9caca}
+              .st2{fill:none;stroke:#fff;stroke-miterlimit:10;stroke-width:.97px}
+              .st3{fill:#b5b5b6}.st4{fill:#595757}.st5{fill:#898989}
+            </style>
+          </defs>
+          <g>
+            <ellipse class="st4" cx="241.09" cy="467.46" rx="209.48" ry="12.59"/>
+            <path class="st5" d="M240.68,449.24c-131.09,0-237.36,8.23-237.36,18.37,0,5.37,29.83,10.2,77.38,13.56,42.18,2.99,98.33,4.81,159.97,4.81s117.8-1.82,159.99-4.81c47.55-3.36,77.37-8.19,77.37-13.56,0-10.14-106.26-18.37-237.36-18.37ZM241.09,480.05c-115.69,0-209.47-5.63-209.47-12.59s93.78-12.59,209.47-12.59,209.47,5.64,209.47,12.59-93.78,12.59-209.47,12.59Z"/>
+            <path class="st3" d="M105.84,621.23c-19.64,1.85-35.91.77-56.07-4.19-4.68-1.33-9-3.23-12.98-5.57-22.31-13.16-33.76-40.54-35.47-62.74-2.01-26.16-1.97-41.97,2.01-81.11,0,5.37,29.83,10.2,77.38,13.56-14.31,115.01,13.46,134.03,25.13,140.06Z"/>
+            <path class="st3" d="M480.05,548.72c-1.71,22.2-13.16,49.58-35.47,62.74-3.99,2.34-8.3,4.25-12.98,5.57-20.16,4.96-36.43,6.04-56.07,4.19,11.67-6.03,39.47-25.06,25.15-140.06,47.55-3.36,77.37-8.19,77.37-13.56,3.99,39.14,4.03,54.95,2.01,81.11Z"/>
+            <path class="st1" d="M375.52,621.23c-53.11,16.94-216.57,16.94-269.68,0-11.67-6.03-39.45-25.05-25.13-140.06,42.18,2.99,98.33,4.81,159.97,4.81s117.8-1.82,159.99-4.81c14.33,114.99-13.48,134.03-25.15,140.06Z"/>
+            <path class="st0" d="M444.58,611.46v21.13c0,9.51-24.54,17.79-76.43,18.41,5.38-6.29,7.37-15.5,7.37-29.78,19.64,1.85,35.91.77,56.07-4.19,4.68-1.33,9-3.23,12.98-5.57Z"/>
+            <path class="st3" d="M375.52,621.23c0,14.27-1.99,23.49-7.37,29.78-19.02,7.67-105.17,10.74-127.47,10.74s-108.45-3.07-127.47-10.74c-5.38-6.29-7.37-15.5-7.37-29.78,53.11,16.94,216.57,16.94,269.68,0Z"/>
+            <path class="st0" d="M113.21,651c-51.88-.62-76.43-8.9-76.43-18.41v-21.13c3.99,2.34,8.3,4.25,12.98,5.57,20.16,4.96,36.43,6.04,56.07,4.19,0,14.27,1.99,23.49,7.37,29.78Z"/>
+          </g>
+          <path class="st1" d="M386.68,161.44c-1.73,5.62-5.05,10.59-4.45,21.95.31,8.61,2.31,44.98-13.35,52.95h-23.62c-2.62,2.76-7.52,12.13-5.99,28.69,1.3,2.39,6.51,7.91,7.58,8.61,1.17,1.38-1.9,19.48,19.26,43.74v15.18c.47,3.54-36.53,32.7-30.69,95.91,0,7.99-6.34,30.81-33.34,52.89h-135.16s13.2-16.78-2.92-28.03c2.6-12.58-5.38-20.41-9.66-21.32l4.67-6.06,2.99-.68c12.29,7.66,25.33-8.61,10.91-23.79,1.01-6.9-.87-12.6-3.62-16.78-3.52-5.38-8.48-8.32-10.65-8.24-.97,1.48-1.54,2.76-1.54,2.76h-4.45c-4.76-4.92-9.6-7.6-13.35-4.61-8.75,6.92-15.14-1.73-18.72-7.66-9.37-16.58-19.96-14.44-34.8-25.74-11.41-12.32-6.59-29.97,0-37.65,6.59-7.68,58.94-53.92,36.62-72.02v-5.95c20.68-23.11,42.36-19.63,45.86-19.42,5.09-6.36,13.26-10.52,20.64-14.6-1.83-14.02-6.75-18.97-13.8-20.29-7.06-1.34-20.99,8.59-25,12.09-1.44,2.76-2.12,4.59-2.12,4.59h-9.19c-.41-1.48-1.42-3.15-2.82-4.96-24.12,15.22-37.17-.58-62.18-.58H14.58v-35.18c19.85-9.21,18.89-13.84,27.21-25.78,8.34-11.95,21.07-18.43,46.46-17.61,7.78,6.22,11.53,5.97,18.35,5.73.97-2.25,1.19-6.55,0-11.35,34.54-8.44,81.8-53.86,87.53-60.88C256.75,30.6,315.47,0,315.47,0h25.27c1.73,2.66,7.56,6.24,12.07,7.46.21,12.09,7.45,23.68,14,29.61,6.55,5.93,14.89,3.6,19.26,2.22l2.35,3.69c.82,1.73-6.36,9.19-6.05,41.42.31,6.14-.91,23.33-7.06,36.84-1.54,3.38-6.41,24.36-5.5,33.26,4.74,1.54,9.72,2.7,14.72,3.27l2.14,3.67Z"/>
+          <path class="st2" d="M163.35,223.55c-.76-7.37,1.32-12.91,4.92-17.38"/><path class="st2" d="M205.3,169.93c2.35,10.63-6.32,16.08-16.39,21.64"/><path class="st2" d="M70.18,182.41c6.45,0,24-24.65,53.42-33.34l17.23-9.21c9,3.07,16.19.96,23.33-3.68,22.51-14.94,41.51-15.4,46.04-12.89,4.53,2.51,4.91,5.93,12.07,3.17,17.39-9.41,36.83-13.2,40.11-14.43,3.26-.49,68.96-48.29,82.97-62.92l27.32-5.52s1.74.61,5.42,3.99l10.34-4.6"/><path class="st2" d="M321.99,68.96c-2.07-2.81-16.03-12.48-18.49-12.79-5.83,0-28.47,2.86-34.22,12.79-5.76,9.93-6.52,13.3-18.11,19.44-6.45,3.61-9.05,5.06-25.45,36.27"/><path class="st2" d="M279.67,61.13c9.1-3.42,29.28-18.47,34.48-21.94l13.91-1.74c3.84,5.06,6.23,10.92,5.93,21.85"/><path class="st2" d="M294.96,158.68l42.93-21.79c3.3,3.77,16.35,12.6,31.94,17.61"/><line class="st2" x1="350.17" y1="232.04" x2="345.25" y2="236.34"/><path class="st3" d="M162.01,425.26l-2.99.68-4.67,6.06-15.05,1.85-4.3-8.14,7.52-15.8,5.05-1.07c5.07-3.85,8.59-9.97,8.75-17.49,6.49-1.38,11.51-4.61,12.97-6.65,2.74,4.18,4.63,9.87,3.62,16.78,14.42,15.18,1.38,31.45-10.91,23.79Z"/><line class="st2" x1="173.09" y1="381.52" x2="169.29" y2="384.69"/><path class="st2" d="M150.11,183.37c3.32-6.36,10.69-17.57,23.05-22.22h-62.11c4.94,3.81,18.76,13.92,24.92,21.85"/><path class="st2" d="M158.64,376.45c1.3-2.04,3.38-4.47,5.83-4.61"/><path class="st2" d="M384.53,157.76c-3.91,3.97-10.84,10.74-21.69,14.22,10.64,24.14-19.03,41.13-29.26,64.35"/><path class="st2" d="M362.86,171.91c-25.37-.76-47.94-18.01-63.9-14.3"/><path class="st2" d="M205.68,244.42s32.52-13.75,41.76-18.82c.41-11.87,5.12-33.76,18.01-46.65,12.89-12.89,36.12-28.42,44.5-18.8,8.39,9.62,9.51,21.25,6.04,40.35l6.86,14.36c.51,2.04,5.83,15.05,10.75,21.48h11.66"/><path class="st2" d="M85.79,303.55c9.82-7.67,30.49-11.05,42.77-2.76,16.18,10.15,41.42-18.82,44.61-21.85"/><path class="st2" d="M139.59,302.63c-3.37,1.57-19.06,14.79-28.53,25.18,0,0-9.97,10.39-31.56,1.22"/><path class="st2" d="M309.95,160.14c1.53,5.09-14.83,32.3-48.19,51.74l-12.68.82"/><path class="st2" d="M331.48,233.24c-2.66,2.94-21.38,18.2-36.88,36.4,0,0-10.9-6.45-20.41-9.21"/><path class="st2" d="M212.35,315.68c4.3-1.69,7.44-8.68,11.66-13.35,4.33-4.78,11.82-5.52,15.5-2.3,3.68,3.22,3.38,10.13-2.15,14.27-3.38,2.15-8.13,3.61-15.04,2.07-6.91-1.53-9.98-.69-9.98-.69Z"/><path class="st2" d="M187.87,325.19c3.22,2,11.07,14.58-11.41,30.54-8.19,6.33-21.1,14.32-28.88,10.44-7.78-3.89,2.41-20.3,6.34-25.37,3.94-5.07,17.96-26.91,33.94-15.6Z"/><path class="st2" d="M185.54,430.42c-1.13,2.46-8.26,6.6-8.08,13.2,0,3.99,2.15,8.59,6.75,8.59,4.6,0,12.79-10.33,1.33-21.79Z"/><path class="st2" d="M208.97,386.73c2.76-5.22,17.46-22.41,32.98-28.85,15.51-6.45,27.48-7.67,38.84,0,11.36,7.67,19.23,37.14-19.85,75.2"/><path class="st2" d="M290.06,380.29c-1.11,8.75-3.54,26.8-38.53,38.26-3.89-.2-17.19-17.8-16.57-28.44.61-10.64,2.3-29.95,2.3-29.95"/><path class="st2" d="M215.08,378.62c-1.61,16.6-2.73,30.31,12.07,53.02,20.9.05,35.64-2.05,37.87-2.68"/><path class="st2" d="M251.53,418.55s-5.88,1.02-15.24-1.28"/><path class="st2" d="M231.53,381.51s3.87,14.51,5.32,17.76"/><path class="st2" d="M248.52,215.66c48.24,24.36,16.31,78.68,5.27,84.67"/><path class="st2" d="M195.16,259.97c-7.56,11.9-13.81,35.91,17.19,55.71"/><path class="st2" d="M122.42,231.53c11-1.79,24.71.97,21.33,19.08l-1.64,8.44c16.52-6.65,42.32,6.14,42.32,6.14l10.72-5.22c2.66-3.79,10.52-12.89,18.95-19.15"/><path class="st2" d="M106.61,109.58c-4.91,8.75-19.62,19.44-27.69,23.12-9.28.35-20.14.2-41.42,10.23l-22.92,4.3"/><polyline class="st2" points="157.01 376.45 158.62 376.45 158.64 376.45"/><path class="st2" d="M173.09,358.23c32.1-22.63,57.48-25.43,73.35-42.55"/><polyline class="st2" points="339.27 265.03 325.35 266.61 312.38 285"/><path class="st2" d="M335.42,428.47s-19.51-11.25-32.58-9.02c0,0-28.74,29.43-37.82,35.5"/>
+        </svg>
+      </div>
       <div class="holder-ash-pile" id="ash-pile"></div>
     </div>
   </div>
@@ -611,125 +638,27 @@ function animateSmoke() {
 }
 animateSmoke();
 
-// ---- Taihu Stone — Metaball distance field on canvas ----
+// ---- Taihu SVG — compute hole position for stick alignment ----
+// SVG viewBox: 0 0 481.36 661.74, stone top peak ~(315, 0)
+// The stone top in the SVG is near x=315, y=0 (top of stone body path)
+// The SVG is rendered at 120x160px, so scale factors:
+// scaleX = 120/481.36 = 0.2493, scaleY = 160/661.74 = 0.2418
+// Stone top peak: SVG x≈315.47, y≈0 → rendered x≈78.6, y≈0
+// We set taihuHolePos after layout so smoke origin is correct
 (function() {
-  var c = document.getElementById('taihu-canvas');
-  if (!c) return;
-  var ctx = c.getContext('2d');
-  var W = c.width, H = c.height;
-
-  // PRNG
-  var seed = Math.floor(Date.now() / 1000) % 99999;
-  function rand() {
-    seed = (seed * 1664525 + 1013904223) & 0x7fffffff;
-    return seed / 0x7fffffff;
+  function computeHolePos() {
+    var svgEl = document.getElementById('taihu-svg');
+    if (!svgEl) return;
+    var rect = svgEl.getBoundingClientRect();
+    var sceneRect = document.getElementById('scene').getBoundingClientRect();
+    // Stone top peak in SVG coords: x≈315.47/481.36 ≈ 65.5% width, y≈0/661.74 ≈ 0%
+    var hx = rect.left - sceneRect.left + rect.width * 0.656;
+    var hy = rect.top  - sceneRect.top  + rect.height * 0.02;
+    window.taihuHolePos = {x: hx, y: hy};
   }
-
-  // --- Define blobs (positive) and anti-blobs (holes) ---
-  // Stone shape: tall column cx=60, spanning y 5..155
-  var cx = W / 2;
-
-  // Positive blobs — form the stone body
-  var blobs = [
-    // Core column
-    {x: cx,       y: 80,  r: 28},
-    {x: cx,       y: 40,  r: 22},
-    {x: cx,       y: 120, r: 24},
-    // Asymmetric protrusions — randomized each refresh
-    {x: cx + 14 + (rand()-0.5)*8,  y: 30 + rand()*15,  r: 14 + rand()*6},
-    {x: cx - 16 + (rand()-0.5)*8,  y: 55 + rand()*15,  r: 13 + rand()*6},
-    {x: cx + 18 + (rand()-0.5)*8,  y: 90 + rand()*15,  r: 12 + rand()*5},
-    {x: cx - 12 + (rand()-0.5)*6,  y: 115 + rand()*10, r: 11 + rand()*5},
-    // Top peak
-    {x: cx + (rand()-0.5)*10,      y: 14 + rand()*8,   r: 10 + rand()*4},
-  ];
-
-  // Hole blobs — cut into the stone (anti-metaballs, subtracted)
-  var nHoles = 2 + Math.floor(rand() * 3);
-  var holes = [];
-  for (var h = 0; h < nHoles; h++) {
-    holes.push({
-      x: cx + (rand()-0.5) * 30,
-      y: 35 + rand() * 100,
-      r: 8 + rand() * 14
-    });
-  }
-
-  // --- Render via pixel-level distance field ---
-  var imgData = ctx.createImageData(W, H);
-  var pix = imgData.data;
-
-  // Stone color: dark blue-grey with subtle variation
-  var stoneR = 88, stoneG = 100, stoneB = 115;
-
-  var THRESHOLD = 1.0;
-
-  for (var py = 0; py < H; py++) {
-    for (var px2 = 0; px2 < W; px2++) {
-      // Sum of metaball influence (positive)
-      var field = 0;
-      for (var bi = 0; bi < blobs.length; bi++) {
-        var b = blobs[bi];
-        var dx = px2 - b.x, dy = py - b.y;
-        var d2 = dx*dx + dy*dy;
-        if (d2 < 0.01) d2 = 0.01;
-        field += (b.r * b.r) / d2;
-      }
-      // Subtract hole influence
-      var holeField = 0;
-      for (var hi = 0; hi < holes.length; hi++) {
-        var hh = holes[hi];
-        var hx = px2 - hh.x, hy = py - hh.y;
-        var hd2 = hx*hx + hy*hy;
-        if (hd2 < 0.01) hd2 = 0.01;
-        holeField += (hh.r * hh.r) / hd2;
-      }
-      var net = field - holeField * 0.85;
-
-      if (net >= THRESHOLD) {
-        var idx = (py * W + px2) * 4;
-        // Shading: brighter toward top-left (light source)
-        var lightFactor = 1.0 - py / H * 0.35 + (W - px2) / W * 0.15;
-        // Edge darkening: pixels near threshold appear darker (depth)
-        var edgeDark = Math.min(1, (net - THRESHOLD) * 1.2);
-        var shade = lightFactor * (0.6 + edgeDark * 0.4);
-        // Small surface variation using sine noise
-        var noise = 0.92 + 0.08 * Math.sin(px2 * 0.4 + py * 0.3);
-        shade *= noise;
-
-        pix[idx]   = Math.round(stoneR * shade);
-        pix[idx+1] = Math.round(stoneG * shade);
-        pix[idx+2] = Math.round(stoneB * shade);
-        pix[idx+3] = 255;
-      }
-    }
-  }
-  ctx.putImageData(imgData, 0, 0);
-
-  // --- Add surface pits as dark circles on top ---
-  ctx.globalCompositeOperation = 'multiply';
-  var nPits = 10 + Math.floor(rand() * 12);
-  for (var q = 0; q < nPits; q++) {
-    var qx = cx + (rand()-0.5) * 44;
-    var qy = 15 + rand() * 130;
-    var qr = 2 + rand() * 4;
-    var pg = ctx.createRadialGradient(qx, qy, 0, qx, qy, qr);
-    pg.addColorStop(0, 'rgba(20,30,45,.55)');
-    pg.addColorStop(1, 'rgba(20,30,45,0)');
-    ctx.beginPath();
-    ctx.arc(qx, qy, qr, 0, Math.PI*2);
-    ctx.fillStyle = pg;
-    ctx.fill();
-  }
-  ctx.globalCompositeOperation = 'source-over';
-
-  // Incense hole at very top of stone
-  var topY = 10;
-  ctx.beginPath();
-  ctx.arc(cx, topY + 3, 2.5, 0, Math.PI*2);
-  ctx.fillStyle = 'rgba(10,20,35,.8)';
-  ctx.fill();
-  window.taihuHolePos = {x: cx, y: topY + 3};
+  window.addEventListener('load', computeHolePos);
+  window.addEventListener('resize', computeHolePos);
+  setTimeout(computeHolePos, 200);
 })();
 
 // ---- Ember glow pulse ----
