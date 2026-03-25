@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>太湖石 · Taihu Stone</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: #ffffff;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    font-family: 'Georgia', 'STSong', serif;
+  }
+  #stone-svg {
+    display: block;
+  }
+  .title {
+    margin-top: 18px;
+    font-size: 13px;
+    letter-spacing: 0.12em;
+    color: #595757;
+    opacity: 0.85;
+  }
+</style>
+</head>
+<body>
+
+<svg id="stone-svg" viewBox="0 0 300 350" width="300" height="350">
+  <defs>
+    <radialGradient id="bodyGrad" cx="35%" cy="30%" r="65%" fx="30%" fy="25%">
+      <stop offset="0%" stop-color="#c9caca"/>
+      <stop offset="100%" stop-color="#9fa0a0"/>
+    </radialGradient>
+    <clipPath id="stoneClip">
+      <path id="clipShape"/>
+    </clipPath>
+  </defs>
+
+  <!-- base pedestal -->
+  <ellipse id="baseShadow" cx="150" cy="296" rx="72" ry="9" fill="#595757"/>
+  <ellipse id="baseFace"   cx="150" cy="292" rx="68" ry="7" fill="#b5b5b6"/>
+
+  <!-- neck -->
+  <rect id="neck" x="138" y="275" width="24" height="20" fill="#898989" rx="2"/>
+
+  <!-- stone layers -->
+  <path id="layerShadow"    fill="#595757"/>
+  <path id="layerMid"       fill="#898989"/>
+  <path id="layerBody"      fill="#b5b5b6"/>
+  <path id="layerHighlight" fill="#c9caca"/>
+  <path id="layerGrad"      fill="url(#bodyGrad)" opacity="0.85"/>
+
+  <!-- texture lines group -->
+  <g id="textureLines" fill="none" clip-path="url(#stoneClip)"/>
+
+  <!-- holes -->
+  <g id="holes"/>
+</svg>
+
+<p class="title">太湖石 · Taihu Stone</p>
+
+<script>
+(function() {
+  'use strict';
+
+  // ── constants ────────────────────────────────────────────────
+  const CX = 150, CY = 155;
+  const BASE_RX = 52, BASE_RY = 118;
+  const N_POINTS = 64;
+  const N_HARMONICS = 8;
+  const MORPH_INTERVAL = 4000;   // ms between new shapes
+  const MORPH_DURATION = 1500;   // ms transition
+  const N_TEXTURE = 15;
+
+  // ── RNG helpers ──────────────────────────────────────────────
+  function rand(min, max) { return min + Math.random() * (max - min); }
+  function randInt(min, max) { return Math.floor(rand(min, max + 1)); }
+
+  // ── polar → cartesian ellipse radius ────────────────────────
+  function baseRadius(theta) {
+    // ellipse radius in polar
+    const cosT = Math.cos(theta), sinT = Math.sin(theta);
+    return (BASE_RX * BASE_RY) /
+      Math.sqrt(BASE_RY * BASE_RY * cosT * cosT + BASE_RX * BASE_RX * sinT * sinT);
+  }
+
+  // ── generate harmonic params ─────────────────────────────────
+  function genHarmonics() {
+    const h = [];
+    for (let i = 0; i < N_HARMONICS; i++) {
+      h.push({
+        A: rand(8, 22),
+        n: randInt(1, 5),
+        phi: rand(0, Math.PI * 2)
+      });
+    }
+    return h;
+  }
+
+  // ── compute N_POINTS outline from harmonics ──────────────────
+  function computePoints(harmonics) {
+    const pts = [];
+    for (let i = 0; i < N_POINTS; i++) {
+      const theta = (i / N_POINTS) * Math.PI * 2;
+      let r = baseRadius(theta);
+      for (const h of harmonics) {
+        r += h.A * Math.sin(h.n * theta + h.phi);
+      }
+      r = Math.max(r, 18); // clamp min radius
+      pts.push({ x: CX + r * Math.cos(theta), y: CY + r * Math.sin(theta) });
+    }
+    return pts;
+  }
+
+  // ── Catmull-Rom → SVG cubic bezier path ─────────────────────
+  function catmullRomPath(pts, scale, ox, oy) {
+    const n = pts.length;
+    function tp(i) {
+      const p = pts[(i + n) % n];
+      return {
+        x: CX + (p.x - CX) * scale + ox,
+        y: CY + (p.y - CY) * scale + oy
+      };
+    }
+    let d = '';
+    for (let i = 0; i < n; i++) {
+      const p0 = tp(i - 1), p1 = tp(i), p2 = tp(i + 1), p3 = tp(i + 2);
+      if (i === 0) {
+        d += `M ${p1.x.toFixed(2)},${p1.y.toFixed(2)} `;
+      }
+      // Catmull-Rom tangents → cubic bezier control points (alpha=0.5)
+      const cp1x = p1.x + (p2.x - p0.x) / 6;
+      const cp1y = p1.y + (p2.y - p0.y) / 6;
+      const cp2x = p2.x - (p3.x - p1.x) / 6;
+      const cp2y = p2.y - (p3.y - p1.y) / 6;
+      d += `C ${cp1x.toFixed(2)},${cp1y.toFixed(2)} ${cp2x.toFixed(2)},${cp2y.toFixed(2)} ${p2.x.toFixed(2)},${p2.y.toFixed(2)} `;
+    }
+    d += 'Z';
+    return d;
+  }
+
+  // ── interpolate two point arrays ────────────────────────────
+  function lerpPoints(from, to, t) {
+    return from.map((p, i) => ({
+      x: p.x + (to[i].x - p.x) * t,
+      y: p.y + (to[i].y - p.y) * t
+    }));
+  }
+
+  // easing: smooth step
+  function ease(t) { return t * t * (3 - 2 * t); }
+
+  // ── point-in-polygon (ray cast) ──────────────────────────────
+  function pointInPoly(px, py, pts) {
+    let inside = false;
+    const n = pts.length;
+    for (let i = 0, j = n - 1; i < n; j = i++) {
+      const xi = pts[i].x, yi = pts[i].y;
+      const xj = pts[j].x, yj = pts[j].y;
+      if (((yi > py) !== (yj > py)) &&
+          (px < (xj - xi) * (py - yi) / (yj - yi) + xi)) {
+        inside = !inside;
+      }
+    }
+    return inside;
+  }
+
+  // ── generate texture lines ───────────────────────────────────
+  function genTextureLines(pts) {
+    const lines = [];
+    const n = pts.length;
+
+    for (let k = 0; k < N_TEXTURE; k++) {
+      // pick a random point near the outline
+      const startIdx = randInt(0, n - 1);
+      const endIdx   = (startIdx + randInt(8, 20)) % n;
+
+      const s = pts[startIdx];
+      const e = pts[endIdx];
+
+      // control point: weighted toward center, with slight offset
+      const cx1 = (s.x + CX) / 2 + rand(-18, 18);
+      const cy1 = (s.y + CY) / 2 + rand(-18, 18);
+      const cx2 = (e.x + CX) / 2 + rand(-18, 18);
+      const cy2 = (e.y + CY) / 2 + rand(-18, 18);
+
+      const sw  = rand(0.7, 1.3).toFixed(2);
+      const op  = rand(0.55, 0.88).toFixed(2);
+
+      lines.push(
+        `<path d="M${s.x.toFixed(1)},${s.y.toFixed(1)} ` +
+        `C${cx1.toFixed(1)},${cy1.toFixed(1)} ` +
+        `${cx2.toFixed(1)},${cy2.toFixed(1)} ` +
+        `${e.x.toFixed(1)},${e.y.toFixed(1)}" ` +
+        `stroke="#fff" stroke-width="${sw}" opacity="${op}" fill="none"/>`
+      );
+    }
+    return lines.join('\n');
+  }
+
+  // ── generate holes ───────────────────────────────────────────
+  function genHoles(pts) {
+    const count = randInt(1, 3);
+    let out = '';
+    for (let h = 0; h < count; h++) {
+      // pick random interior point
+      let hx, hy, tries = 0;
+      do {
+        hx = rand(CX - 35, CX + 35);
+        hy = rand(CY - 70, CY + 50);
+        tries++;
+      } while (!pointInPoly(hx, hy, pts) && tries < 40);
+      if (tries >= 40) { continue; }
+      const rx = rand(5, 13);
+      const ry = rand(4, 10);
+      out += `<ellipse cx="${hx.toFixed(1)}" cy="${hy.toFixed(1)}" rx="${rx.toFixed(1)}" ry="${ry.toFixed(1)}" fill="#595757" opacity="0.75"/>\n`;
+      // inner lighter ring
+      out += `<ellipse cx="${(hx - 1).toFixed(1)}" cy="${(hy - 1).toFixed(1)}" rx="${(rx * 0.6).toFixed(1)}" ry="${(ry * 0.6).toFixed(1)}" fill="#3d3c3c" opacity="0.85"/>\n`;
+    }
+    return out;
+  }
+
+  // ── DOM refs ─────────────────────────────────────────────────
+  const elShadow    = document.getElementById('layerShadow');
+  const elMid       = document.getElementById('layerMid');
+  const elBody      = document.getElementById('layerBody');
+  const elHighlight = document.getElementById('layerHighlight');
+  const elGrad      = document.getElementById('layerGrad');
+  const elClip      = document.getElementById('clipShape');
+  const elTexture   = document.getElementById('textureLines');
+  const elHoles     = document.getElementById('holes');
+  const elNeck      = document.getElementById('neck');
+
+  // ── apply points to DOM ──────────────────────────────────────
+  function applyPoints(pts) {
+    const d0 = catmullRomPath(pts, 1.00,  3,  5);
+    const d1 = catmullRomPath(pts, 0.97,  0,  0);
+    const d2 = catmullRomPath(pts, 0.94,  0,  0);
+    const d3 = catmullRomPath(pts, 0.88, -4, -6);
+    const d4 = catmullRomPath(pts, 0.90, -2, -3);
+
+    elShadow.setAttribute('d',    d0);
+    elMid.setAttribute('d',       d1);
+    elBody.setAttribute('d',      d2);
+    elHighlight.setAttribute('d', d3);
+    elGrad.setAttribute('d',      d4);
+    elClip.setAttribute('d',      d2);
+
+    // neck position: bottom of stone
+    let minY = Infinity, maxY = -Infinity, minX = Infinity, maxX = -Infinity;
+    for (const p of pts) {
+      if (p.y > maxY) { maxY = p.y; }
+      if (p.y < minY) { minY = p.y; }
+      if (p.x < minX) { minX = p.x; }
+      if (p.x > maxX) { maxX = p.x; }
+    }
+    const neckW = Math.max(16, (maxX - minX) * 0.18);
+    const neckX = CX - neckW / 2;
+    elNeck.setAttribute('x', neckX.toFixed(1));
+    elNeck.setAttribute('width', neckW.toFixed(1));
+    elNeck.setAttribute('y', (maxY - 4).toFixed(1));
+  }
+
+  // ── state ────────────────────────────────────────────────────
+  let currentPts  = computePoints(genHarmonics());
+  let targetPts   = computePoints(genHarmonics());
+  let morphStart  = null;
+  let isMorphing  = false;
+
+  applyPoints(currentPts);
+  elTexture.innerHTML = genTextureLines(currentPts);
+  elHoles.innerHTML   = genHoles(currentPts);
+
+  // ── animation loop ───────────────────────────────────────────
+  let lastMorph = performance.now();
+
+  function frame(now) {
+    if (isMorphing) {
+      const elapsed = now - morphStart;
+      const t = Math.min(elapsed / MORPH_DURATION, 1);
+      const te = ease(t);
+      const pts = lerpPoints(currentPts, targetPts, te);
+      applyPoints(pts);
+
+      // crossfade texture
+      elTexture.style.opacity = t < 0.5
+        ? (1 - t * 2).toFixed(3)
+        : ((t - 0.5) * 2).toFixed(3);
+
+      if (t >= 0.5 && elTexture.dataset.phase !== '1') {
+        elTexture.innerHTML    = genTextureLines(targetPts);
+        elHoles.innerHTML      = genHoles(targetPts);
+        elTexture.dataset.phase = '1';
+      }
+
+      if (t >= 1) {
+        currentPts = targetPts;
+        isMorphing = false;
+        elTexture.style.opacity = '1';
+        lastMorph = now;
+      }
+    } else {
+      if (now - lastMorph >= MORPH_INTERVAL) {
+        targetPts  = computePoints(genHarmonics());
+        morphStart = now;
+        isMorphing = true;
+        elTexture.dataset.phase = '0';
+      }
+    }
+    requestAnimationFrame(frame);
+  }
+
+  requestAnimationFrame(frame);
+
+})();
+</script>
+</body>
+</html>
