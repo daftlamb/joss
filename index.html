@@ -404,11 +404,9 @@ function updateTimeDisplay() {
 function updateStick() {
   var progress = 1 - remainSec / totalSec;  // 0→1
   var bodyH = Math.round(STICK_MAX_H * (1 - progress));
-  var ashH = Math.round(STICK_MAX_H * progress);
-  var pileH = Math.round(ashH * 0.12);
   stickBody.style.height = bodyH + 'px';
-  stickAsh.style.height = ashH + 'px';
-  ashPile.style.height = Math.min(pileH, 18) + 'px';
+  // stickAsh height is managed by ash chunk system (ashOnStick)
+  ashPile.style.height = '0px'; // pile handled by canvas
 }
 
 function resetStick() {
@@ -531,14 +529,16 @@ var ashSpawnAcc = 0;
 
 function initAshHeap() { ashHeap = new Float32Array(ASH_HEAP_W); }
 initAshHeap();
-var ashChunkAcc = 0;        // accumulating ash length (px)
-var ashChunkThresh = 10 + Math.random()*8; // threshold before next break
+var ashChunkAcc = 0;        // accumulating ash length on stick (px)
+var ashChunkThresh = 10 + Math.random()*8;
+var ashOnStick = 0;         // current ash length visible on stick
 
 function resetAsh() {
   ashParticles = [];
   initAshHeap();
   ashChunkAcc = 0;
   ashChunkThresh = 10 + Math.random()*8;
+  ashOnStick = 0;
 }
 
 // Drop a whole chunk of ash at once
@@ -558,8 +558,12 @@ function dropAshChunk(ex, ey) {
       wobbleAmp: 0.15 + Math.random()*0.25 // chunk wobbles less than single mote
     });
   }
-  ashChunkThresh = 8 + Math.random()*12; // next threshold
+  ashChunkThresh = 8 + Math.random()*12;
   ashChunkAcc = 0;
+  ashOnStick = 0; // ash fell off stick
+  stickAsh.style.height = "0px"; // visual reset
+  stickAsh.style.transition = "none"; // instant drop
+  setTimeout(function(){ stickAsh.style.transition = ""; }, 50);
 }
 
 function updateDrawAsh(ctx, cw, ch) {
@@ -694,8 +698,10 @@ function animateSmoke() {
     }
     // Spawn ash every ~8 frames
     ashSpawnAcc++;
-    // Ash accumulates on the burning tip; chunk drops when threshold reached
-    ashChunkAcc += 0.018; // accumulate slowly with time
+    // Ash accumulates on burning tip, grows visually, then drops as chunk
+    ashChunkAcc += 0.018;
+    ashOnStick = Math.min(ashChunkAcc * 1.5, ashChunkThresh * 1.5);
+    stickAsh.style.height = Math.round(ashOnStick) + 'px';
     if (ashChunkAcc >= ashChunkThresh) {
       dropAshChunk(pos.x, pos.y + 3);
     }
