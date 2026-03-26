@@ -70,6 +70,7 @@ header{
   top:0;left:0;
   width:100%;height:100%;
   pointer-events:none;
+  z-index:4;
 }
 
 /* Incense stick */
@@ -568,13 +569,13 @@ function dropAshChunk(ex, ey) {
 
 function updateDrawAsh(ctx, cw, ch) {
   // Ground = top of the holder, relative to scene canvas
-  var holderEl = document.getElementById('holder-wrap');
+  var holderEl = document.getElementById('taihu-svg');
   var sceneEl = document.getElementById('scene');
   var groundY = ch - 10; // fallback
   if (holderEl && sceneEl) {
     var hr = holderEl.getBoundingClientRect();
     var sr = sceneEl.getBoundingClientRect();
-    groundY = hr.top - sr.top + 4; // top edge of holder = ash landing zone
+    groundY = hr.bottom - sr.top - 4; // bottom edge of taihu stone
   }
   for (var i = ashParticles.length-1; i >= 0; i--) {
     var a = ashParticles[i];
@@ -599,8 +600,8 @@ function updateDrawAsh(ctx, cw, ch) {
   if (ashParticles.length > 500) {
     ashParticles = ashParticles.filter(function(a){return !a.settled;}).slice(-250);
   }
-  // Draw heap
-  var hcx = cw/2;
+  // Draw heap — centered on taihu stone
+  var hcx = (window.taihuHolePos ? window.taihuHolePos.x : cw/2);
   ctx.save();
   ctx.beginPath();
   ctx.moveTo(hcx-ASH_HEAP_W/2-2, groundY);
