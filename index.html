@@ -531,18 +531,35 @@ var ashSpawnAcc = 0;
 
 function initAshHeap() { ashHeap = new Float32Array(ASH_HEAP_W); }
 initAshHeap();
-function resetAsh() { ashParticles = []; initAshHeap(); }
+var ashChunkAcc = 0;        // accumulating ash length (px)
+var ashChunkThresh = 10 + Math.random()*8; // threshold before next break
 
-function spawnAsh(ex, ey) {
-  ashParticles.push({
-    x: ex + (Math.random()-0.5)*3, y: ey,
-    vx: (Math.random()-0.5)*0.5, vy: 0,
-    size: 0.6 + Math.random()*1.2,
-    alpha: 0.55 + Math.random()*0.4,
-    settled: false,
-    wobble: Math.random()*Math.PI*2,
-    wobbleAmp: 0.3 + Math.random()*0.4
-  });
+function resetAsh() {
+  ashParticles = [];
+  initAshHeap();
+  ashChunkAcc = 0;
+  ashChunkThresh = 10 + Math.random()*8;
+}
+
+// Drop a whole chunk of ash at once
+function dropAshChunk(ex, ey) {
+  var count = 18 + Math.floor(Math.random()*16);
+  var chunkVx = (Math.random()-0.5)*0.3; // slight shared drift
+  for (var i=0; i<count; i++) {
+    ashParticles.push({
+      x: ex + (Math.random()-0.5)*2.5,
+      y: ey + (Math.random()-0.5)*3,
+      vx: chunkVx + (Math.random()-0.5)*0.4,
+      vy: 0.3 + Math.random()*0.5, // initial downward velocity (chunk has weight)
+      size: 0.8 + Math.random()*1.4,
+      alpha: 0.5 + Math.random()*0.4,
+      settled: false,
+      wobble: Math.random()*Math.PI*2,
+      wobbleAmp: 0.15 + Math.random()*0.25 // chunk wobbles less than single mote
+    });
+  }
+  ashChunkThresh = 8 + Math.random()*12; // next threshold
+  ashChunkAcc = 0;
 }
 
 function updateDrawAsh(ctx, cw, ch) {
@@ -677,7 +694,11 @@ function animateSmoke() {
     }
     // Spawn ash every ~8 frames
     ashSpawnAcc++;
-    if (ashSpawnAcc >= 22) { ashSpawnAcc=0; spawnAsh(pos.x, pos.y+4); }
+    // Ash accumulates on the burning tip; chunk drops when threshold reached
+    ashChunkAcc += 0.018; // accumulate slowly with time
+    if (ashChunkAcc >= ashChunkThresh) {
+      dropAshChunk(pos.x, pos.y + 3);
+    }
   }
   updateDrawAsh(smokeCtx, smokeCanvas.width, smokeCanvas.height);
 
