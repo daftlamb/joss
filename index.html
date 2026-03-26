@@ -567,7 +567,15 @@ function dropAshChunk(ex, ey) {
 }
 
 function updateDrawAsh(ctx, cw, ch) {
-  var groundY = ch - 10;
+  // Ground = top of the holder, relative to scene canvas
+  var holderEl = document.getElementById('holder-wrap');
+  var sceneEl = document.getElementById('scene');
+  var groundY = ch - 10; // fallback
+  if (holderEl && sceneEl) {
+    var hr = holderEl.getBoundingClientRect();
+    var sr = sceneEl.getBoundingClientRect();
+    groundY = hr.top - sr.top + 4; // top edge of holder = ash landing zone
+  }
   for (var i = ashParticles.length-1; i >= 0; i--) {
     var a = ashParticles[i];
     if (a.settled) continue;
