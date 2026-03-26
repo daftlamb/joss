@@ -550,9 +550,9 @@ function updateDrawAsh(ctx, cw, ch) {
   for (var i = ashParticles.length-1; i >= 0; i--) {
     var a = ashParticles[i];
     if (a.settled) continue;
-    a.vy += 0.035 + Math.random()*0.01;
+    a.vy += 0.012 + Math.random()*0.006;
     a.wobble += 0.08;
-    a.x += a.vx + Math.sin(a.wobble)*a.wobbleAmp;
+    a.x += a.vx + Math.sin(a.wobble)*a.wobbleAmp + windForce;
     a.y += a.vy;
     var hcx = cw/2;
     var hi = Math.round(a.x - hcx + ASH_HEAP_W/2);
@@ -627,21 +627,41 @@ function getEmberPos() {
 }
 
 var smokeT = 0;
-var turbulence = 0;      // occasional gust offset
-var turbTimer = 0;       // countdown to next gust
+var turbulence = 0;
+var turbTimer = 0;
 var turbTarget = 0;
+var windForce = 0;
+var windTimer = 1800 + Math.floor(Math.random()*3600); // first gust in 30-90s
+var windActive = false;
+var windDuration = 0;
+var windTarget = 0;
 
 function animateSmoke() {
   smokeCtx.clearRect(0, 0, smokeCanvas.width, smokeCanvas.height);
   smokeT += 0.007;
 
-  // Random turbulence event — occasional sideways gust
+  // Wind gust system — random gust every 1-2 min, lasts ~3-6s
+  windTimer--;
+  if (windTimer <= 0) {
+    // Random interval: 60-120 seconds at 60fps = 3600-7200 frames
+    windTimer = 3600 + Math.random() * 3600;
+    windActive = true;
+    windDuration = 180 + Math.random() * 180; // 3-6s at 60fps
+    windTarget = (Math.random() > 0.5 ? 1 : -1) * (8 + Math.random() * 14);
+  }
+  if (windActive) {
+    windDuration--;
+    if (windDuration <= 0) { windActive = false; windTarget = 0; }
+  }
+  turbulence += (windTarget - turbulence) * 0.018;
+  windForce = turbulence * 0.35; // ash gets blown more than smoke
+
+  // Legacy turbulence for smoke
   turbTimer--;
   if (turbTimer <= 0) {
-    turbTimer = 120 + Math.random() * 200;  // every 2–5 sec
-    turbTarget = (Math.random() - 0.5) * 18;
+    turbTimer = 120 + Math.random() * 200;
+    turbTarget = windActive ? windTarget : (Math.random() - 0.5) * 8;
   }
-  turbulence += (turbTarget - turbulence) * 0.012;  // smooth ease
 
   if (smokeActive && running) {
     var pos = getEmberPos();
@@ -657,7 +677,7 @@ function animateSmoke() {
     }
     // Spawn ash every ~8 frames
     ashSpawnAcc++;
-    if (ashSpawnAcc >= 8) { ashSpawnAcc=0; spawnAsh(pos.x, pos.y+4); }
+    if (ashSpawnAcc >= 22) { ashSpawnAcc=0; spawnAsh(pos.x, pos.y+4); }
   }
   updateDrawAsh(smokeCtx, smokeCanvas.width, smokeCanvas.height);
 
